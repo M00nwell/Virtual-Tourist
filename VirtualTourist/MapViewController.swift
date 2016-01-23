@@ -16,6 +16,7 @@ class MapViewController:  UIViewController, MKMapViewDelegate, NSFetchedResultsC
     @IBOutlet weak var editButton: UIBarButtonItem!
     @IBOutlet weak var notificationView: UIView!
     var isMapRestored: Bool = false
+    var tmpPin: MKAnnotation!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -72,17 +73,31 @@ class MapViewController:  UIViewController, MKMapViewDelegate, NSFetchedResultsC
     @IBAction func longPress(sender: UILongPressGestureRecognizer) {
         if editButton.title == "Done" {
             return
-        } else if sender.state == .Began {
+        } else{
             let touchPoint = sender.locationInView(mapView)
             let coordinate = mapView.convertPoint(touchPoint, toCoordinateFromView: mapView)
             let lat = coordinate.latitude as Double
             let lon = coordinate.longitude as Double
-            let pinToAdd = Pin(lon: lon, lat: lat, context: sharedContext)
             let annotation = MKPointAnnotation()
             annotation.coordinate = coordinate
-            mapView.addAnnotation(annotation)
-            getPhoto(pinToAdd)
-            CoreDataStackManager.sharedInstance().saveContext()
+            
+            switch(sender.state){
+            case .Changed:
+                mapView.removeAnnotation(tmpPin)
+            case .Began:
+                tmpPin = annotation
+                mapView.addAnnotation(annotation)
+                break
+            case .Ended:
+                mapView.removeAnnotation(tmpPin)
+                mapView.addAnnotation(annotation)
+                let pinToAdd = Pin(lon: lon, lat: lat, context: sharedContext)
+                getPhoto(pinToAdd)
+                CoreDataStackManager.sharedInstance().saveContext()
+                break
+            default:
+                break
+            }
         }
     }
     
@@ -101,11 +116,13 @@ class MapViewController:  UIViewController, MKMapViewDelegate, NSFetchedResultsC
                     self.presentViewController(alert, animated: true, completion: nil)
                 })
             }else{
-                for element in url! {
-                    let pic = Picture(url: element, context: self.sharedContext)
-                    pic.pin = pin
-                }
-                CoreDataStackManager.sharedInstance().saveContext()
+                dispatch_async(dispatch_get_main_queue(), {
+                    for element in url! {
+                        let pic = Picture(url: element, context: self.sharedContext)
+                        pic.pin = pin
+                    }
+                    CoreDataStackManager.sharedInstance().saveContext()
+                })
             }
         }
     }
@@ -130,6 +147,16 @@ class MapViewController:  UIViewController, MKMapViewDelegate, NSFetchedResultsC
             mapView.removeAnnotation(view.annotation!)
             sharedContext.deleteObject(pinSelected)
             CoreDataStackManager.sharedInstance().saveContext()
+        }
+    }
+    
+    func mapView(mapView: MKMapView, annotationView view: MKAnnotationView, didChangeDragState newState: MKAnnotationViewDragState, fromOldState oldState: MKAnnotationViewDragState) {
+        switch (newState) {
+        case .Starting:
+            view.dragState = .Dragging
+        case .Ending, .Canceling:
+            view.dragState = .None
+        default: break
         }
     }
     

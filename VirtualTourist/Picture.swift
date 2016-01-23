@@ -28,13 +28,19 @@ class Picture: NSManagedObject {
     }
     
     var image: UIImage? {
-        
         get {
-            return FlickrClient.Caches.imageCache.imageWithIdentifier(url)
+            let u = NSURL(fileURLWithPath: url)
+            return FlickrClient.Caches.imageCache.imageWithIdentifier(u.lastPathComponent)
         }
         
         set {
-            FlickrClient.Caches.imageCache.storeImage(newValue, withIdentifier: url)
+            let u = NSURL(fileURLWithPath: url)
+            FlickrClient.Caches.imageCache.storeImage(newValue, withIdentifier: u.lastPathComponent!)
         }
+    }
+    
+    override func prepareForDeletion() {
+        let u = NSURL(fileURLWithPath: url)
+        FlickrClient.Caches.imageCache.storeImage(nil, withIdentifier: u.lastPathComponent!)
     }
 }

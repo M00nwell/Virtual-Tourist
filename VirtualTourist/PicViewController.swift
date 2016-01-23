@@ -18,6 +18,7 @@ class PicViewController: UIViewController, UICollectionViewDataSource, UICollect
     var deletedIndexPaths: [NSIndexPath]!
     var updatedIndexPaths: [NSIndexPath]!
     var annotation: MKAnnotation!
+    var label: UILabel!
     
     @IBOutlet weak var bottomButton: UIBarButtonItem!
     @IBOutlet weak var collectionView: UICollectionView!
@@ -51,6 +52,14 @@ class PicViewController: UIViewController, UICollectionViewDataSource, UICollect
         let width = floor(self.collectionView.frame.size.width/3-6)
         layout.itemSize = CGSize(width: width, height: width)
         collectionView.collectionViewLayout = layout
+        
+        if(label == nil){
+            label = UILabel(frame: CGRectMake(0, 0, 200, 21))
+            label.center = view.center
+            label.textAlignment = NSTextAlignment.Center
+            label.text = "This pin has no images"
+            view.addSubview(label)
+        }
     }
 
     var sharedContext: NSManagedObjectContext {
@@ -133,11 +142,10 @@ class PicViewController: UIViewController, UICollectionViewDataSource, UICollect
         let sectionInfo = self.fetchedResultsController.sections![section]
         let n = sectionInfo.numberOfObjects
         if(n == 0){
-            let label = UILabel(frame: CGRectMake(0, 0, 200, 21))
-            label.center = view.center
-            label.textAlignment = NSTextAlignment.Center
-            label.text = "This pin has no images"
-            view.addSubview(label)
+            label.hidden = false
+        }
+        else{
+            label.hidden = true
         }
         return n
     }
@@ -171,6 +179,7 @@ class PicViewController: UIViewController, UICollectionViewDataSource, UICollect
     }
     
     func configureCell(cell: PictureCell, pic: Picture, index: NSIndexPath){
+        cell.imageView.image = nil
         
         if let localImage = pic.image {
             cell.imageView.image = localImage
